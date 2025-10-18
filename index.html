@@ -1,0 +1,320 @@
+<?php
+
+//if users not login so redirect login page
+session_start();
+include('php/conn.php');
+$unique_id = $_SESSION['unique_id'];
+$email = $_SESSION['email'];
+
+if(empty($unique_id)){
+    header("Location: login.php");
+}
+$qry = mysqli_query($conn, "SELECT * FROM users WHERE unique_id = '{$unique_id}'");
+if(mysqli_num_rows($qry) > 0){
+    $row = mysqli_fetch_assoc($qry);
+    if($row){
+        $_SESSION['verification_status'] = $row['verification_status'];
+        if($row['verification_status'] != 'Verified'){
+            header("Location: verify.php");
+        }
+    }
+}
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <title>Our Products</title>
+    <link rel="stylesheet" href="css/style_product.css" />
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <?php include 'nav.php'; ?>
+
+    <!-- Product Grid -->
+    <?php
+    echo "
+    <div class='container'>
+        <h1 style='text-align: center; margin-bottom: 20px;'>Our Products</h1>
+        <div class='product-grid'>
+    ";
+    ?>
+
+    <?php
+    $sql = "SELECT * FROM products";
+    if (!empty($search)) {
+       $sql .= " WHERE (product_name LIKE '%$search%' OR product_price LIKE '%$search%' OR product_category LIKE '%$search%' OR product_details LIKE '%$search%')";
+    }
+
+    $query = $conn->query($sql);
+
+    while($data = mysqli_fetch_assoc($query)){
+      $product_id = $data['serial_no'];
+      $p_name = $data['product_name'];
+      $price = $data['product_price'];
+      $details = $data['product_details'];
+      $category = $data['product_category'];
+      $available = $data['product_available'];
+      $product_image = $data['product_image'];
+
+      echo "
+      <div class='product-card' data-category='$category'>
+          <div class='product-image-area'>
+              <img src='php/product_image/$product_image' alt='Product Image' class='product-image'>
+          </div>
+          <div class='product-details'>
+              <h2 class='product-title'> $p_name </h2>
+              <p class='product-price'>৳  $price  </p>
+             
+              <div class='button-group'>
+                  <button class='add-to-cart' data-product-id='$product_id' data-product-name='$p_name' data-product-price='$price'>Add to Cart</button>
+        <button class='view-details' 
+    data-product-id='$product_id' 
+    data-product-name='$p_name' 
+    data-product-price='$price' 
+    data-product-details='$details' 
+    data-product-available='$available'>
+    View Details
+</button>
+
+
+              </div>
+          </div>
+      </div>
+      ";
+    }
+
+    echo "
+    </div>
+    </div>";
+    ?>
+
+    <!-- Modal Structure -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title"></h2>
+            <p id="modal-details"></p>
+            <p id="modal-price"></p>
+            <p id="modal-available"></p>
+        </div>
+    </div>
+
+    <style>
+        /* Modal styling */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 50%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+
+</body>
+</html>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const modal = document.getElementById("product-modal");
+    const closeModal = document.querySelector(".close");
+    const modalTitle = document.getElementById("modal-title");
+    const modalDetails = document.getElementById("modal-details");
+    const modalPrice = document.getElementById("modal-price");
+    const modalAvailable = document.getElementById("modal-available");
+
+    // Handle "View Details" button click
+    document.querySelectorAll(".view-details").forEach(button => {
+        button.addEventListener("click", function() {
+            const productName = this.dataset.productName;
+            const productDetails = this.dataset.productDetails;
+            const productPrice = this.dataset.productPrice;
+             const productAvailable = this.dataset.productAvailable || 'Not Available';
+
+            // Populate modal content with innerHTML to render HTML tags
+            modalTitle.textContent = productName;
+            modalDetails.innerHTML = productDetails; // Change textContent to innerHTML
+            modalPrice.textContent = `Price: ৳ ${productPrice}`;
+           
+modalAvailable.textContent = `Product Available: ${productAvailable}`;
+
+
+            // Show modal
+            modal.style.display = "block";
+        });
+    });
+
+    // Handle modal close
+    closeModal.addEventListener("click", function() {
+        modal.style.display = "none";
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener("click", function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("product-modal");
+    const closeModal = document.querySelector(".close");
+    const modalTitle = document.getElementById("modal-title");
+    const modalDetails = document.getElementById("modal-details");
+    const modalPrice = document.getElementById("modal-price");
+    const modalAvailable = document.getElementById("modal-available");
+  
+
+    // Create a notification container
+    const notificationContainer = document.createElement("div");
+    notificationContainer.className = "notification-container";
+    document.body.appendChild(notificationContainer);
+
+    // Show notification
+    function showNotification(message, type = "success") {
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        notificationContainer.appendChild(notification);
+
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Handle "Add to Cart" button click
+    document.querySelectorAll(".add-to-cart").forEach(button => {
+        button.addEventListener("click", function () {
+            const productId = this.dataset.productId;
+            const productName = this.dataset.productName;
+            const productPrice = this.dataset.productPrice;
+
+            // Send AJAX request to add product to cart
+            fetch("add_to_cart.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `product_id=${productId}&product_name=${encodeURIComponent(productName)}&product_price=${productPrice}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        showNotification(data.message, "success");
+                    } else {
+                        showNotification(data.message, "error");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showNotification("An error occurred. Please try again.", "error");
+                });
+        });
+    });
+
+    
+
+  
+});
+
+
+</script>
+
+
+<style>
+/* Notification Container */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Notification Box */
+.notification {
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease, fadeOut 0.3s 2.7s ease forwards;
+    cursor: pointer;
+}
+
+/* Success Notification */
+.notification.success {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Error Notification */
+.notification.error {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Animation for Sliding In */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Animation for Fading Out */
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* Add hover effect */
+.notification:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+</style>
